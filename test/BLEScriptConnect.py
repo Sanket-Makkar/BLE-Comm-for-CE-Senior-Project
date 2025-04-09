@@ -1,46 +1,60 @@
 import asyncio
 from bleak import BleakClient, BleakScanner
 
-# Match these with your Arduino sketch
-DEVICE_NAME = "XIAO BLE Node"
+# Full 128‑bit UUIDs (recommended)
 SERVICE_UUID = "12345678-1234-1234-1234-1234567890ab"
 CHARACTERISTIC_UUID = "87654321-4321-4321-4321-ba0987654321"
 
-# Callback for notifications
+# The deviceName you passed into NimBLEDevice::init(...)
+DEVICE_NAME = "ESP32-BLE-Sender"
+
+# This function handles incoming notifications from the BLE device
 def handle_notification(sender, data):
-    print(f"🔔 Notification from {sender}: {data.decode()}")
+    text = data.decode(errors="ignore")
+    print(f"🔔 Notification from {sender}: {text}")
 
 async def main():
     print("🔍 Scanning for BLE devices...")
+
+    # Discover nearby BLE devices
     devices = await BleakScanner.discover()
 
-    xiao_device = None
-    for device in devices:
-        if device.name and DEVICE_NAME in device.name:
-            xiao_device = device
-            break
+    # Find the device by its name (you can customize this to match the device's name)
+    device = next((d for d in devices if d.name and DEVICE_NAME in d.name), None)
 
-    if not xiao_device:
-        print("❌ XIAO BLE Node not found.")
+    if not device:
+        print("❌ Device not found.")
         return
 
-    print(f"✅ Found device: {xiao_device.name} [{xiao_device.address}]")
+    print(f"✅ Found {device.name} [{device.address}]")
 
-    async with BleakClient(xiao_device.address) as client:
-        print("🔗 Connected to device.")
+    # Connect to the discovered device
+    async with BleakClient(device.address) as client:
+        if not client.is_connected:
+            print("❌ Failed to connect.")
+            return
+        print("🔗 Connected.")
 
-        # Subscribe to notifications
+        # Subscribe to notifications for the characteristic
+        print(f"🔔 Subscribing to notifications on {CHARACTERISTIC_UUID}...")
         await client.start_notify(CHARACTERISTIC_UUID, handle_notification)
 
-        # Write request
-        print("📤 Sending: I want data")
-        await client.write_gatt_char(CHARACTERISTIC_UUID, b"I want data", response=True)
+        # Optionally, read the current value of the characteristic once
+        try:
+            value = await client.read_gatt_char(CHARACTERISTIC_UUID)
+            print(f"📦 Current value of characteristic: {value.decode('utf-8')}")
+        except Exception as e:
+            print(f"❌ Failed to read characteristic: {e}")
 
-        # Wait for the device to respond
-        print("⏳ Waiting for response...")
-        await asyncio.sleep(5)  # You can adjust this based on how long your device takes
+        # Keep the connection open and listen for notifications
+        try:
+            print("⏳ Waiting for notifications (Ctrl+C to stop)...")
+            while True:
+                await asyncio.sleep(1.0)
+        except KeyboardInterrupt:
+            print("\n✋ Stopping notifications...")
 
-        # Done
+        # Stop notifications before disconnecting
         await client.stop_notify(CHARACTERISTIC_UUID)
         print("📴 Disconnected.")
 

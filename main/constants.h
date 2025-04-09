@@ -1,9 +1,3 @@
-// constants.h
-#include <BLEDevice.h>
-#include <BLEUtils.h>
-#include <BLEServer.h>
-#include <BLE2902.h> 
-
 #pragma once
 
 namespace BLE_Characteristics {
@@ -12,5 +6,6 @@ namespace BLE_Characteristics {
 }
 namespace BLE_Settings
 {
-    constexpr int ADVERTISING_INTERVAL = 2500;
+    constexpr int ADVERTISING_INTERVAL_MIN = 32;
+    constexpr int ADVERTISING_INTERVAL_MAX = 2500;
 }
