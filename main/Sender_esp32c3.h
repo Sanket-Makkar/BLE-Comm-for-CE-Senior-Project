@@ -15,7 +15,7 @@ public:
 
     Sender_esp32c3();
 
-    void begin(const std::string& deviceName, bool enableNotify, bool enableWrite, bool enableRead);
+    void begin(const std::string& deviceName, bool enableNotify, bool enableIndicate, bool enableWrite, bool enableRead);
     void stopAdvertising();
     void sendResponse(const String& response, bool useIndicate);
     void sendIndication(const String& indication);
@@ -32,7 +32,7 @@ private:
     CommandCallback commandHandler;
     FlagSetCallback chimeHandler;
 
-    void setupCharacteristics(bool enableNotify, bool enableWrite, bool enableRead);
+    void setupCharacteristics(bool enableNotify, bool enableIndicate, bool enableWrite, bool enableRead);
     void startAdvertising();
 
 public:

@@ -2,7 +2,7 @@ import asyncio
 from bleak import BleakClient, BleakScanner
 
 SERVICE_UUID = "12345678-1234-1234-1234-1234567890ab"
-CHARACTERISTIC_UUID = "87654321-4321-4321-4321-ba0987654321"
+CHARACTERISTIC_UUID = "0000FFE1-0000-1000-8000-00805F9B34FB"
 DEVICE_NAME = "ESP32-BLE-Sender"
 
 # Stores chunks as they come in
@@ -17,6 +17,7 @@ def handle_indication(sender, data):
 async def main():
     print("🔍 Scanning for BLE devices...")
     devices = await BleakScanner.discover()
+    print(devices)
     device = next((d for d in devices if d.name and DEVICE_NAME in d.name), None)
 
     if not device:

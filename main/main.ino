@@ -5,7 +5,7 @@ Sender_esp32c3 sender;
 void setup() {
     Serial.begin(115200);
 
-    sender.begin("ESP32-BLE-Sender", true, true, false); // Notify + Write, no Read
+    sender.begin("ESP32-BLE-Sender", false, true, true, false); // Notify + Write, no Read
 
     sender.registerDataCallback([](const std::string& data) {
         Serial.print("Received data: ");
