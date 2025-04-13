@@ -22,7 +22,6 @@ public:
     void broadcast(const String& message);
     void registerDataCallback(CommandCallback cb);
     void registerChimeCallback(FlagSetCallback cm);
-    String vectorToPythonList(const std::vector<String>& vec);
 
 private:
     BLEServer* pServer;

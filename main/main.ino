@@ -1,23 +1,24 @@
-#include "Sender_esp32c3.h"
+#include <Arduino.h>
+#include "Orchestrator.h"
 
-Sender_esp32c3 sender;
+// Define the pins used for UART communication on ESP32-C3
+const int uartRxPin = D6;  // Example RX pin for ESP32-C3 (change as per your wiring)
+const int uartTxPin = D5;  // Example TX pin for ESP32-C3 (change as per your wiring)
+const uint32_t baudRate = 9600;
+
+Orchestrator orchestrator(uartRxPin, uartTxPin, baudRate);
 
 void setup() {
-    Serial.begin(115200);
+    // Start Serial Monitor for debugging
+    Serial.begin(115200);  // This will be used for Serial Monitor output
 
-    sender.begin("ESP32-BLE-Sender", false, true, true, false); // Notify + Write, no Read
+    // Initialize the Orchestrator (handles UART and BLE)
+    orchestrator.begin();
 
-    sender.registerDataCallback([](const std::string& data) {
-        Serial.print("Received data: ");
-        Serial.println(data.c_str());
-        sender.sendIndication(String(("ACK: " + data).c_str()));
-    });
-
-    sender.registerChimeCallback([](bool connected) {
-        Serial.println(connected ? "Device connected!" : "Device disconnected.");
-    });
+    // Additional setup or initialization if needed
+    Serial.println("System Initialized. Ready to receive commands.");
 }
 
 void loop() {
-    delay(1000);
+    orchestrator.processBleQueue();
 }

@@ -80,18 +80,6 @@ void Sender_esp32c3::broadcast(const String& message) {
     startAdvertising();
 }
 
-String Sender_esp32c3::vectorToPythonList(const std::vector<String>& vec) {
-    String result = "[";
-    for (size_t i = 0; i < vec.size(); ++i) {
-        result += "\"" + vec[i] + "\"";
-        if (i < vec.size() - 1) {
-            result += ", ";
-        }
-    }
-    result += "]";
-    return result;
-}
-
 // Callbacks
 
 void Sender_esp32c3::RocketBLECharacteristicCallbacks::onWrite(BLECharacteristic* pCharacteristic) {
@@ -115,7 +103,5 @@ void Sender_esp32c3::RocketBLEServerCallbacks::onDisconnect(BLEServer* pServer) 
     if (sender_->chimeHandler) {
         sender_->chimeHandler(false);
     }
-    if (sender_->pCharacteristic) {
-        sender_->startAdvertising();
-    }
+    sender_->startAdvertising();
 }
