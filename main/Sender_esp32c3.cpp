@@ -1,55 +1,82 @@
 #include "Sender_esp32c3.h"
 
-Sender_esp32c3::Sender_esp32c3() : commandHandler(nullptr) {}
+Sender_esp32c3::Sender_esp32c3() : pServer(nullptr), pService(nullptr), pCharacteristic(nullptr),
+    commandHandler(nullptr), chimeHandler(nullptr) {}
 
-void Sender_esp32c3::begin(const String& deviceName) {
-    // Initialize BLE device with the provided name
-    BLEDevice::init(deviceName);
+void Sender_esp32c3::begin(const std::string& deviceName, bool enableNotify, bool enableWrite, bool enableRead) {
+    BLEDevice::init(String(deviceName.c_str()));
+    pServer = BLEDevice::createServer();
+    pServer->setCallbacks(new RocketBLEServerCallbacks(this));
 
-    // Create BLE server and service
-    BLEServer *pServer = BLEDevice::createServer();
-    BLEService *pService = pServer->createService(SERVICE_UUID);
+    pService = pServer->createService(BLEUUID((uint16_t)0xFFE0));
 
-    // Create characteristic with read, write, and notify properties
+    setupCharacteristics(enableNotify, enableWrite, enableRead);
+
+    pService->start();
+    startAdvertising();
+}
+
+void Sender_esp32c3::setupCharacteristics(bool enableNotify, bool enableWrite, bool enableRead) {
+    uint32_t properties = 0;
+    if (enableNotify) properties |= BLECharacteristic::PROPERTY_NOTIFY;
+    if (enableWrite)  properties |= BLECharacteristic::PROPERTY_WRITE;
+    if (enableRead)   properties |= BLECharacteristic::PROPERTY_READ;
+
     pCharacteristic = pService->createCharacteristic(
-        CHARACTERISTIC_UUID,
-        BLECharacteristic::PROPERTY_READ |
-        BLECharacteristic::PROPERTY_WRITE |
-        BLECharacteristic::PROPERTY_NOTIFY
+        BLEUUID((uint16_t)0xFFE1),
+        properties
     );
 
-    // Add the BLE2902 descriptor for notifications
-    pCharacteristic->addDescriptor(new BLE2902());
+    if (enableNotify) {
+        pCharacteristic->addDescriptor(new BLE2902());
+    }
 
-    // Pass the current instance of Sender_esp32c3 to the callback
-    pCharacteristic->setCallbacks(new MyCallbacks(this));
+    pCharacteristic->setCallbacks(new RocketBLECharacteristicCallbacks(this));
+}
 
-    // Set initial value for the characteristic
-    pCharacteristic->setValue("Waiting for command...");
+void Sender_esp32c3::startAdvertising() {
+    BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
+    pAdvertising->addServiceUUID(pService->getUUID());
+    pAdvertising->start();
+}
 
-    // Start the service
-    pService->start();
-
-    // Setup advertising and start advertising
-    BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-    pAdvertising->addServiceUUID(SERVICE_UUID);
-    pAdvertising->setScanResponse(true);
-    pAdvertising->setMinPreferred(0x06);  // Helps with iPhone connections
-    pAdvertising->setMinPreferred(0x12);
-    pAdvertising->start();  // Start BLE advertising
-
-    Serial.println("BLE Advertising started, waiting for connections...");
+void Sender_esp32c3::stopAdvertising() {
+    BLEDevice::getAdvertising()->stop();
 }
 
 void Sender_esp32c3::registerDataCallback(CommandCallback cb) {
     commandHandler = cb;
 }
 
-void Sender_esp32c3::sendResponse(const String& response) {
+void Sender_esp32c3::registerChimeCallback(FlagSetCallback cm) {
+    chimeHandler = cm;
+}
+
+void Sender_esp32c3::sendResponse(const String& response, bool useIndicate) {
     if (pCharacteristic) {
         pCharacteristic->setValue(response.c_str());
-        pCharacteristic->notify();  // Notify the client of the response
+        if (useIndicate) {
+            pCharacteristic->indicate();
+        } else {
+            pCharacteristic->notify();
+        }
     }
+}
+
+void Sender_esp32c3::sendIndication(const String& indication) {
+    sendResponse(indication, true);
+}
+
+void Sender_esp32c3::broadcast(const String& message) {
+    stopAdvertising();
+
+    BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
+    BLEAdvertisementData advData;
+    advData.setName("Rocket_Battery_Broadcast");
+    advData.setManufacturerData(message);
+    pAdvertising->setAdvertisementData(advData);
+
+    startAdvertising();
 }
 
 String Sender_esp32c3::vectorToPythonList(const std::vector<String>& vec) {
@@ -64,23 +91,27 @@ String Sender_esp32c3::vectorToPythonList(const std::vector<String>& vec) {
     return result;
 }
 
-void Sender_esp32c3::startAdvertising() {
-    BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-    pAdvertising->start();  // Restart BLE advertising
-}
+// Callbacks
 
-void Sender_esp32c3::stopAdvertising() {
-    BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-    pAdvertising->stop();  // Stop BLE advertising
-}
-
-// Definition for the BLECharacteristicCallbacks
-void Sender_esp32c3::MyCallbacks::onWrite(BLECharacteristic *pCharacteristic) {
+void Sender_esp32c3::RocketBLECharacteristicCallbacks::onWrite(BLECharacteristic* pCharacteristic) {
     String value = pCharacteristic->getValue().c_str();
-    Serial.println("Received command: " + value);
-
-    // If a custom callback is set, invoke it
     if (sender_->commandHandler) {
-        sender_->commandHandler(value);
+        sender_->commandHandler(std::string(value.c_str()));
+    }
+}
+
+void Sender_esp32c3::RocketBLECharacteristicCallbacks::onRead(BLECharacteristic* pCharacteristic) {
+    Serial.println("Log read request");
+}
+
+void Sender_esp32c3::RocketBLEServerCallbacks::onConnect(BLEServer* pServer) {
+    if (sender_->chimeHandler) {
+        sender_->chimeHandler(true);
+    }
+}
+
+void Sender_esp32c3::RocketBLEServerCallbacks::onDisconnect(BLEServer* pServer) {
+    if (sender_->chimeHandler) {
+        sender_->chimeHandler(false);
     }
 }
