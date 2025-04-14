@@ -95,13 +95,13 @@ void Sender_esp32c3::RocketBLECharacteristicCallbacks::onRead(BLECharacteristic*
 
 void Sender_esp32c3::RocketBLEServerCallbacks::onConnect(BLEServer* pServer) {
     if (sender_->chimeHandler) {
-        sender_->chimeHandler(true);
+        sender_->chimeHandler(ChimeTranslator::CONNECT);
     }
 }
 
 void Sender_esp32c3::RocketBLEServerCallbacks::onDisconnect(BLEServer* pServer) {
     if (sender_->chimeHandler) {
-        sender_->chimeHandler(false);
+        sender_->chimeHandler(ChimeTranslator::DISCONNECT);
     }
     sender_->startAdvertising();
 }

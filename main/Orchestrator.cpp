@@ -1,24 +1,28 @@
 #include "Orchestrator.h"
 #include "Sender_esp32c3.h"
 #include <Arduino.h>
+#include "Chime.h"
 
 using namespace std;
 
-Orchestrator::Orchestrator(int uartRxPin, int uartTxPin, uint32_t baud)
-    : uart(Serial1), rxPin(uartRxPin), txPin(uartTxPin), baudRate(baud) {
+Orchestrator::Orchestrator(int uartRxPin, int uartTxPin, uint32_t baud, int piezoPin)
+    : uart(Serial1), rxPin(uartRxPin), txPin(uartTxPin), baudRate(baud), chime(piezoPin) {
     // Register callbacks for BLE events
     bleSender.registerDataCallback([this](const std::string& command) {
         handleCommand(command);
     });
-    bleSender.registerChimeCallback([this](bool state) {
+    bleSender.registerChimeCallback([this](int state) {
         onChime(state);
     });
+
 }
 
 void Orchestrator::begin() {
     // Initialize Serial2 for UART communication with specified RX/TX pins
     uart.begin(baudRate, SERIAL_8N1, rxPin, txPin);
     bleSender.begin("ESP32-BLE-Sender", true, true, true, true); // Notify + Write, no Read
+    chime.begin();
+    chime.flushChimes();
 }
 
 void Orchestrator::handleCommand(const string& command) {
@@ -94,28 +98,29 @@ void Orchestrator::processBleQueue() {
     if (!bleQueue.empty() && millis() - lastSendTime >= bleSendInterval) {
         String nextChunk = bleQueue.front();
         bleQueue.pop();
-        bleSender.sendIndication(nextChunk);
+        bleSender.sendResponse(nextChunk, false);
         lastSendTime = millis();
+        chime.enqueueChime(ChimeTranslator::SENT);
     }
 }
-
-// void Orchestrator::chunkAndSend(String formattedResponse, int minChunkSize) {
-//     vector<String> chunks;
-//     int start = 0;
-//     while (start < formattedResponse.length()) {
-//         int chunkSize = min(minChunkSize, (int)(formattedResponse.length() - start));
-//         String chunk = formattedResponse.substring(start, start + chunkSize);
-//         chunks.push_back(chunk);
-//         start += chunkSize;
-//     }
-
-//     // Send each chunk via BLE indication
-//     for (const auto& chunk : chunks) {
-//         bleSender.sendIndication(chunk);
-//     }
-// }
-
 // Chime handling
-void Orchestrator::onChime(bool state) {
-    Serial.println("🔔 Chime On: BLE connected");
+void Orchestrator::onChime(int state) {
+    // Handle chime state changes
+    switch (state) {
+        case ChimeTranslator::CONNECT:
+            chime.enqueueChime(ChimeTranslator::CONNECT);
+            break;
+        case ChimeTranslator::DISCONNECT:
+            chime.enqueueChime(ChimeTranslator::DISCONNECT);
+            break;
+        case ChimeTranslator::SENT:
+            chime.enqueueChime(ChimeTranslator::SENT);
+            break;
+        case ChimeTranslator::START:
+            chime.enqueueChime(ChimeTranslator::START);
+            break;
+    }
+    if (chime.hasChimesToPlay()) {
+        chime.playNextChime();
+    }
 }

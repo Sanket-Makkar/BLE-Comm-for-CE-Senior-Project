@@ -3,14 +3,16 @@
 #include <Arduino.h>
 #include "Sender_esp32c3.h"
 #include <queue>
+#include "Chime.h"
 
 class Orchestrator {
 public:
-    Orchestrator(int uartRxPin, int uartTxPin, uint32_t baud = 9600);
+    Orchestrator(int uartRxPin, int uartTxPin, uint32_t baud = 9600, int piezoPin = 0);
+    Chime chime;
 
     void begin();
     void handleCommand(const std::string& command);   // Called when BLE sends a command
-    void onChime(bool state);
+    void onChime(int state);
     void processBleQueue(); // Call this regularly (from loop or task)
 
 private:
