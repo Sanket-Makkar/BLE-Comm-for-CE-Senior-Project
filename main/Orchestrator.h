@@ -13,7 +13,7 @@ public:
     void begin();
     void handleCommand(const std::string& command);   // Called when BLE sends a command
     void onChime(int state);
-    void processBleQueue(); // Call this regularly (from loop or task)
+    void processBleQueue();
 
 private:
     Sender_esp32c3 bleSender;
