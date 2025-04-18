@@ -22,12 +22,35 @@ void loop() {
         return;
     }
 
+    // extract the battery num from batteryNum;measType;numberOfValues
+    String batteryNumStr = incoming.substring(0, firstSpace);
+    batteryNumStr.trim();
+    int batteryNum = batteryNum.toInt();
+    
+    // extract the measType num from batteryNum;measType;numberOfValues
+    String measType = incoming.substring(firstSpace + 1, secondSpace);
+    measType.trim();
+
+    // extract the numberPart num from batteryNum;measType;numberOfValues
     String numberPart = incoming.substring(secondSpace + 1);
     numberPart.trim();
     int count = numberPart.toInt();
 
-    if (count <= 0) {
-        Serial.println("Invalid number or zero");
+    if (measType == "Voltage"){
+        Serial.println("Measurement Type: Voltage");
+    } 
+    else if (measType == "Current") {
+        Serial.println("Measurement Type: Current");
+    } 
+    else if (measType == "Power") {
+        Serial.println("Measurement Type: Power");
+    } 
+    else if (measType == "Life") {
+        Serial.println("Unknown measurement type");
+        return;
+    }
+    else {
+        Serial.println("Invalid measurement type");
         return;
     }
 
@@ -52,6 +75,6 @@ void loop() {
         start += chunkSize;
     }
 
-    Serial.println("✅ All chunks sent");
+    Serial.println("All chunks sent");
     }  
 }
