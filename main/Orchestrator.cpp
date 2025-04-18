@@ -76,6 +76,10 @@ String Orchestrator::formatResponsePyList(String response, String measurementTyp
     // Format the response into a list or other appropriate format
     String formattedResponse;
     if (measurementType == "Power" || measurementType == "Voltage" || measurementType == "Current") {
+        // remove all commas in response and replace with empty
+        response.replace(',', ' ');
+        response.replace(' ', ',');
+        Serial.println("Response after replacing commas: " + response);
         formattedResponse = "[" + response + "]";
     } else {
         int firstSpace = response.indexOf(' ');

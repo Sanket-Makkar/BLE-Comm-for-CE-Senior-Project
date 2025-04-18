@@ -40,7 +40,7 @@ async def main():
 
         received_chunks.clear()
 
-        cmd = "#Battery;Voltage;150"
+        cmd = "#Battery;Voltage;100"
         try:
             await client.write_gatt_char(CHARACTERISTIC_UUID, cmd.encode(), response=True)
             print(f"Sent command: {cmd}")
@@ -48,7 +48,11 @@ async def main():
             print(f"Write failed: {e}")
             return
 
-        await asyncio.sleep(60)
+        # wait until esp32c3 sends a notification with "]" in it and then stop the notification
+        while True:
+            if received_chunks and any("]" in chunk for chunk in received_chunks):
+                break
+            await asyncio.sleep(0.1)
 
         await client.stop_notify(CHARACTERISTIC_UUID)
         print("Unsubscribed from indications.")

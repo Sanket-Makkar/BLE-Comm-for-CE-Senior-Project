@@ -14,8 +14,12 @@ def count_commas(text):
 
 # Example usage
 if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python analyzecontents.py <input_string>")
+        sys.exit(1)
+    filename = sys.argv[1]
     try:
-        with open('data.txt', 'r') as file:
+        with open(filename, 'r') as file:
             input_str = file.read()
             print(count_commas(input_str))
     except:
