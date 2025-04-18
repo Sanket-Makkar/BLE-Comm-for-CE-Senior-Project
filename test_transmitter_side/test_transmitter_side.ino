@@ -25,7 +25,7 @@ void loop() {
     // extract the battery num from batteryNum;measType;numberOfValues
     String batteryNumStr = incoming.substring(0, firstSpace);
     batteryNumStr.trim();
-    int batteryNum = batteryNum.toInt();
+    int batteryNum = batteryNumStr.toInt();
     
     // extract the measType num from batteryNum;measType;numberOfValues
     String measType = incoming.substring(firstSpace + 1, secondSpace);
