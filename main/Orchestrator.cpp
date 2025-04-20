@@ -83,8 +83,9 @@ String Orchestrator::formatResponsePyList(String response, String measurementTyp
         formattedResponse = "[" + response + "]";
     } else {
         int firstSpace = response.indexOf(' ');
-        formattedResponse = (firstSpace == -1) ? response : response.substring(0, firstSpace);
+        formattedResponse = "[" + ((firstSpace == -1) ? response : response.substring(0, firstSpace)) + "]";
     }
+    Serial.println(formattedResponse);
     return formattedResponse;
 }
 

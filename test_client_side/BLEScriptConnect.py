@@ -40,7 +40,7 @@ async def main():
 
         received_chunks.clear()
 
-        cmd = "#Battery;Voltage;100"
+        cmd = "#Battery;Life;100"
         try:
             await client.write_gatt_char(CHARACTERISTIC_UUID, cmd.encode(), response=True)
             print(f"Sent command: {cmd}")
