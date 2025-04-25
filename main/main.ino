@@ -10,6 +10,36 @@ const uint32_t baudRate = 9600;
 Orchestrator orchestrator(uartRxPin, uartTxPin, baudRate, piezoPin);
 
 void setup() {
+    // Run orchestrator BLE queue processing in its own task
+    xTaskCreate(
+        [](void* parameter) {
+            for (;;) {
+                orchestrator.processBleQueue();
+                vTaskDelay(10 / portTICK_PERIOD_MS); // Small delay to yield to other tasks
+            }
+        },
+        "ProcessBleQueueTask",
+        2048, // Stack size
+        NULL,
+        1,    // Priority
+        NULL
+    );
+
+    // Run orchestrator chime processing in its own task
+    xTaskCreate(
+        [](void* parameter) {
+            for (;;) {
+                orchestrator.chime.playNextChime();
+                vTaskDelay(10 / portTICK_PERIOD_MS); // Small delay to yield to other tasks
+            }
+        },
+        "PlayNextChimeTask",
+        2048, // Stack size
+        NULL,
+        1,    // Priority
+        NULL
+    );
+
     // Start Serial Monitor for debugging
     Serial.begin(115200);  // This will be used for Serial Monitor output
 
@@ -21,6 +51,5 @@ void setup() {
 }
 
 void loop() {
-    orchestrator.processBleQueue();
-    orchestrator.chime.playNextChime();
+    delay(1);
 }
